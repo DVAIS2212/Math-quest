@@ -1,0 +1,845 @@
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  --bg:            #050810;
+  --bg2:           #0d1117;
+  --bg3:           #111827;
+  --card:          rgba(255,255,255,0.06);
+  --card-border:   rgba(255,255,255,0.12);
+  --accent:        #818cf8;
+  --accent-dark:   #4f46e5;
+  --gold:          #fbbf24;
+  --green:         #34d399;
+  --green-dark:    #059669;
+  --red:           #f87171;
+  --red-dark:      #dc2626;
+  --text:          #f1f5f9;
+  --text-dim:      #94a3b8;
+
+  /* Per-player theme (updated by JS) */
+  --player-color:  #818cf8;
+  --player-glow:   rgba(129,140,248,0.35);
+
+  --radius:        16px;
+  --radius-sm:     10px;
+  --q-font:        clamp(40px, 9vw, 78px);
+  --a-font:        clamp(22px, 5vw, 38px);
+}
+
+/* Player-specific colour themes */
+body.player-Noya {
+  --player-color: #e879f9;
+  --player-glow:  rgba(232,121,249,0.35);
+}
+body.player-Miya {
+  --player-color: #22d3ee;
+  --player-glow:  rgba(34,211,238,0.35);
+}
+
+/* ============================================================
+   RTL OVERRIDES — force LTR on math/numeric elements
+   ============================================================ */
+.q-text,
+.ans-btn,
+.timer,
+.s-stars,
+.player-stats,
+.home-stars-row,
+.rstat-val,
+.result-stars,
+.eq-tag,
+.q-counter,
+.home-last-stats {
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+/* Back button uses → arrow in RTL context */
+.back-btn { flex-direction: row-reverse; }
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   BACKGROUND STARS
+   ============================================================ */
+#bg-stars {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 20% 30%, rgba(99,102,241,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 70%, rgba(34,211,238,0.06) 0%, transparent 60%),
+              radial-gradient(ellipse at 50% 50%, rgba(5,8,16,1) 0%, rgba(5,8,16,0.95) 100%);
+}
+
+.bg-star {
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+  animation: twinkle var(--dur, 4s) ease-in-out infinite;
+}
+
+/* ============================================================
+   CONFETTI + FLOAT LAYERS
+   ============================================================ */
+#confetti-layer,
+#float-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ============================================================
+   SCREEN SYSTEM
+   ============================================================ */
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  height: 100vh; /* fallback */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(16px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.screen.active {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   SHARED COMPONENTS
+   ============================================================ */
+
+/* Big action button */
+.start-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: calc(100% - 48px);
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--player-color);
+  color: #fff;
+  font-size: clamp(18px, 4vw, 22px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 0 32px var(--player-glow), 0 4px 16px rgba(0,0,0,0.4);
+  animation: pulse-glow 2.5s ease-in-out infinite;
+  transition: transform 0.1s, box-shadow 0.1s;
+  touch-action: manipulation;
+}
+.start-btn:active { transform: scale(0.97); }
+
+/* Subtle text button */
+.text-btn {
+  display: block;
+  width: max-content;
+  margin: 12px auto 0;
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 15px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.text-btn:active { opacity: 0.6; }
+
+/* Back button */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* Gear / settings icon */
+.gear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  cursor: pointer;
+  touch-action: manipulation;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+.gear-btn:active { background: rgba(255,255,255,0.1); }
+
+/* ============================================================
+   SPLASH SCREEN
+   ============================================================ */
+#screen-splash {
+  align-items: center;
+  justify-content: center;
+  padding: 24px 24px max(24px, env(safe-area-inset-bottom, 24px));
+  gap: clamp(16px, 4vh, 40px);
+  overflow: hidden;
+}
+
+.splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.splash-rocket {
+  font-size: clamp(48px, 10vw, 80px);
+  animation: rocket-float 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 24px var(--player-glow));
+}
+
+.splash-title {
+  font-size: clamp(32px, 8vw, 68px);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-align: center;
+  line-height: 1.1;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--gold) 60%, #fb923c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 20px rgba(129,140,248,0.5));
+}
+
+.splash-sub {
+  font-size: clamp(14px, 3vw, 18px);
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.player-buttons {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.player-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px 16px;
+  border: 2px solid var(--card-border);
+  border-radius: 24px;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  touch-action: manipulation;
+  min-height: 130px;
+  backdrop-filter: blur(8px);
+}
+.player-btn:active { transform: scale(0.96); }
+
+#btn-noya { border-color: rgba(232,121,249,0.5); }
+#btn-noya:hover, #btn-noya:focus { border-color: #e879f9; box-shadow: 0 0 24px rgba(232,121,249,0.3); }
+
+#btn-miya { border-color: rgba(34,211,238,0.5); }
+#btn-miya:hover, #btn-miya:focus { border-color: #22d3ee; box-shadow: 0 0 24px rgba(34,211,238,0.3); }
+
+.player-avatar { font-size: 40px; }
+.player-name   { font-size: 22px; font-weight: 800; }
+.player-stats  { font-size: 13px; color: var(--text-dim); text-align: center; }
+
+#screen-splash .gear-btn {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top, 16px));
+  right: 16px;
+  z-index: 10;
+}
+
+/* ============================================================
+   HOME SCREEN
+   ============================================================ */
+#screen-home {
+  padding: 0 24px 32px;
+  gap: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: max(20px, env(safe-area-inset-top, 20px));
+  padding-bottom: 16px;
+  gap: 12px;
+}
+
+.home-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-avatar { font-size: 40px; }
+
+.home-player-name {
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 800;
+  color: var(--player-color);
+}
+
+.home-stars-row {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.streak-badge {
+  display: inline-block;
+  background: rgba(251,191,36,0.15);
+  border: 1px solid rgba(251,191,36,0.3);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  margin: 0 auto 20px;
+  text-align: center;
+  width: fit-content;
+  align-self: flex-start;
+}
+
+.home-message {
+  font-size: clamp(16px, 4vw, 22px);
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.4;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 16px;
+}
+
+.home-planet {
+  font-size: clamp(80px, 20vw, 140px);
+  text-align: center;
+  animation: planet-spin 20s linear infinite;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 40px var(--player-glow));
+}
+
+.home-last-stats {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+  min-height: 18px;
+}
+
+/* ============================================================
+   QUESTION SCREEN
+   ============================================================ */
+#screen-question {
+  padding: 0;
+  gap: 0;
+}
+
+.q-header {
+  flex-shrink: 0;
+  padding: max(12px, env(safe-area-inset-top, 12px)) 16px 10px;
+  background: rgba(5,8,16,0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Progress track */
+.progress-wrap { position: relative; }
+
+.progress-track {
+  position: relative;
+  height: 22px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 11px;
+  overflow: visible;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent-dark), var(--player-color));
+  border-radius: 11px;
+  transition: width 1s linear;
+}
+
+.milestone {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  z-index: 2;
+  transition: all 0.4s ease;
+  opacity: 0.6;
+  cursor: default;
+}
+.milestone.collected {
+  animation: milestone-pop 0.5s ease-out forwards;
+}
+
+.p-rocket {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  z-index: 3;
+  transition: left 1s linear;
+  filter: drop-shadow(0 0 8px var(--player-glow));
+}
+
+/* Timer and session stars */
+.q-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.timer {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.05em;
+  transition: color 0.3s;
+  font-variant-numeric: tabular-nums;
+}
+.timer.urgent { color: var(--red); animation: timer-pulse 0.5s ease-in-out infinite; }
+
+.s-stars {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+/* Flash message */
+.flash-msg {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--gold);
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  transition: opacity 0.3s;
+}
+
+/* Question card */
+.question-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+}
+
+.q-text {
+  font-size: var(--q-font);
+  font-weight: 900;
+  text-align: center;
+  color: var(--text);
+  text-shadow: 0 0 40px var(--player-glow);
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+/* Answer grid */
+.answers-grid {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.ans-btn {
+  min-height: 80px;
+  border: 2px solid var(--card-border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--text);
+  font-size: var(--a-font);
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+  backdrop-filter: blur(4px);
+}
+.ans-btn:hover   { background: rgba(255,255,255,0.12); border-color: var(--player-color); }
+.ans-btn:active  { transform: scale(0.95); }
+.ans-btn:disabled { opacity: 0.6; cursor: default; }
+
+.ans-btn.correct         { background: var(--green-dark); border-color: var(--green); color: #fff; animation: pop 0.3s ease-out; }
+.ans-btn.wrong           { background: var(--red-dark);   border-color: var(--red);   color: #fff; animation: shake 0.4s ease-out; }
+.ans-btn.correct-reveal  { background: rgba(52,211,153,0.3); border-color: var(--green); }
+
+/* Answer enter animation */
+.ans-btn.ans-enter {
+  animation: ans-in 0.3s ease-out both;
+}
+
+/* Question footer */
+.q-footer {
+  flex-shrink: 0;
+  padding: 8px 16px max(12px, env(safe-area-inset-bottom, 12px));
+  text-align: center;
+}
+.q-counter {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* ============================================================
+   RESULT SCREEN
+   ============================================================ */
+#screen-result {
+  padding: 0 24px max(24px, env(safe-area-inset-bottom, 24px));
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  overflow-y: auto;
+  padding-top: max(24px, env(safe-area-inset-top, 24px));
+}
+
+.result-title {
+  font-size: clamp(22px, 5.5vw, 36px);
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+.result-stars {
+  font-size: clamp(28px, 7vw, 48px);
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(251,191,36,0.5);
+  animation: pop 0.4s ease-out 0.2s both;
+}
+
+.result-stats-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.rstat {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 14px 8px;
+  text-align: center;
+}
+.rstat-val {
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 800;
+  color: var(--player-color);
+}
+.rstat-lbl {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.result-panels {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.result-panel {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+.mastered-panel { border-color: rgba(52,211,153,0.3); }
+.practice-panel { border-color: rgba(248,113,113,0.3); }
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.panel-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.eq-tag {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.eq-tag.mastered  { background: rgba(52,211,153,0.2); color: var(--green); }
+.eq-tag.practice  { background: rgba(248,113,113,0.2); color: var(--red); }
+
+.no-items {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.result-btns {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 0;
+}
+.result-btns .start-btn { margin-bottom: 0; }
+
+/* ============================================================
+   SETTINGS SCREEN
+   ============================================================ */
+#screen-settings {
+  padding: 0 24px max(24px, env(safe-area-inset-bottom, 24px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: max(16px, env(safe-area-inset-top, 16px));
+  padding-bottom: 20px;
+}
+
+.settings-title {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 480px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+}
+.setting-label { font-size: 16px; font-weight: 600; }
+
+.toggle-btn {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--bg3);
+  color: var(--text-dim);
+  transition: background 0.2s, color 0.2s;
+  touch-action: manipulation;
+}
+.toggle-btn.active {
+  background: var(--player-color);
+  color: #fff;
+}
+
+.setting-divider { height: 1px; background: var(--card-border); margin: 4px 0; }
+
+.settings-section-label {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0 4px;
+}
+
+.danger-btn {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid rgba(248,113,113,0.3);
+  border-radius: var(--radius-sm);
+  background: rgba(248,113,113,0.08);
+  color: var(--red);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  touch-action: manipulation;
+  transition: background 0.2s;
+}
+.danger-btn:active { background: rgba(248,113,113,0.2); }
+
+.about-block { text-align: center; padding: 8px 0; }
+.about-text    { font-size: 16px; color: var(--text-dim); }
+.about-version { font-size: 12px; color: rgba(255,255,255,0.2); margin-top: 4px; }
+
+/* ============================================================
+   RESPONSIVE — iPad landscape
+   ============================================================ */
+@media (orientation: landscape) and (min-width: 768px) {
+  #screen-question {
+    flex-direction: column;
+  }
+  .question-card { flex: 1; }
+  .answers-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 0 20px;
+  }
+  .ans-btn { min-height: 70px; }
+  --a-font: clamp(20px, 3vw, 30px);
+}
+
+@media (max-height: 700px) {
+  .home-planet { font-size: clamp(50px, 14vw, 90px); }
+  .home-message { padding-bottom: 8px; }
+  .streak-badge { margin-bottom: 10px; }
+}
+
+@media (min-width: 768px) {
+  .player-buttons { justify-content: center; }
+  .player-btn { max-width: 200px; }
+  #screen-home { padding-left: 40px; padding-right: 40px; }
+  .answers-grid { padding: 0 40px; gap: 16px; }
+}
+
+/* ============================================================
+   KEYFRAME ANIMATIONS
+   ============================================================ */
+
+@keyframes twinkle {
+  0%, 100% { transform: scale(1);   opacity: var(--base-op, 0.6); }
+  50%       { transform: scale(0.4); opacity: 0.05; }
+}
+
+@keyframes rocket-float {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50%       { transform: translateY(-14px) rotate(5deg); }
+}
+
+@keyframes planet-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 28px var(--player-glow), 0 4px 14px rgba(0,0,0,0.4); }
+  50%       { box-shadow: 0 0 50px var(--player-glow), 0 8px 24px rgba(0,0,0,0.5); transform: scale(1.015); }
+}
+
+@keyframes pop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-8px); }
+  40%     { transform: translateX(8px); }
+  60%     { transform: translateX(-6px); }
+  80%     { transform: translateX(6px); }
+}
+
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-64px) scale(1.3); }
+}
+
+@keyframes ans-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes milestone-pop {
+  0%   { opacity: 0.6; transform: translate(-50%,-50%) scale(1); }
+  50%  { opacity: 1;   transform: translate(-50%,-150%) scale(2.2); }
+  100% { opacity: 0;   transform: translate(-50%,-250%) scale(0.5); }
+}
+
+@keyframes timer-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.08); }
+}
+
+@keyframes star-shine {
+  0%, 100% { filter: brightness(1); }
+  50%       { filter: brightness(1.6) drop-shadow(0 0 8px var(--gold)); }
+}
+
+/* Utility animation class applied by JS */
+.pop-anim { animation: pop 0.28s ease-out; }

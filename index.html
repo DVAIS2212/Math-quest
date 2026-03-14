@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="הרפתקת מתמטיקה">
+  <meta name="theme-color" content="#050810">
+  <title>הרפתקת מתמטיקה 🚀</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Animated background star field -->
+  <div id="bg-stars" aria-hidden="true"></div>
+  <!-- Confetti / animation overlay -->
+  <div id="confetti-layer" aria-hidden="true"></div>
+  <!-- Floating feedback messages -->
+  <div id="float-layer" aria-hidden="true"></div>
+
+  <!-- ===================== SCREEN: SPLASH ===================== -->
+  <div class="screen" id="screen-splash">
+    <div class="splash-content">
+      <div class="splash-rocket" id="splash-rocket">🚀</div>
+      <h1 class="splash-title">הרפתקת<br>מתמטיקה</h1>
+      <p class="splash-sub">!בחרי את החוקרת שלך</p>
+    </div>
+    <div class="player-buttons">
+      <button class="player-btn" id="btn-noya" data-player="Noya">
+        <div class="player-avatar">👩‍🚀</div>
+        <div class="player-name">נויה</div>
+        <div class="player-stats" id="stats-noya">!חוקרת חדשה</div>
+      </button>
+      <button class="player-btn" id="btn-miya" data-player="Miya">
+        <div class="player-avatar">👩‍🚀</div>
+        <div class="player-name">מיה</div>
+        <div class="player-stats" id="stats-miya">!חוקרת חדשה</div>
+      </button>
+    </div>
+    <button class="gear-btn" id="btn-splash-settings" title="הגדרות">⚙️</button>
+  </div>
+
+  <!-- ===================== SCREEN: HOME ===================== -->
+  <div class="screen" id="screen-home">
+    <div class="home-header">
+      <div class="home-left">
+        <div class="home-avatar" id="home-avatar">👩‍🚀</div>
+        <div>
+          <div class="home-player-name" id="home-player-name">חוקרת</div>
+          <div class="home-stars-row">⭐ <span id="home-stars">0</span> כוכבים</div>
+        </div>
+      </div>
+      <button class="gear-btn" id="btn-home-settings" title="הגדרות">⚙️</button>
+    </div>
+
+    <div class="streak-badge" id="streak-badge">
+      🔥 רצף של <span id="home-streak">0</span> ימים!
+    </div>
+
+    <div class="home-message" id="home-message">?מוכנה למשימה הראשונה שלך</div>
+
+    <div class="home-planet" aria-hidden="true">🪐</div>
+
+    <div class="home-last-stats" id="home-last-stats"></div>
+
+    <button class="start-btn" id="btn-start">
+      <span>🚀</span> התחילי משימה
+    </button>
+
+    <button class="text-btn" id="btn-home-back">החלפי חוקרת ←</button>
+  </div>
+
+  <!-- ===================== SCREEN: QUESTION ===================== -->
+  <div class="screen" id="screen-question">
+
+    <div class="q-header">
+      <!-- Progress bar with rocket -->
+      <div class="progress-wrap">
+        <div class="progress-track" id="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+          <div class="milestone" id="ms-1" style="left:25%">⭐</div>
+          <div class="milestone" id="ms-2" style="left:50%">⭐</div>
+          <div class="milestone" id="ms-3" style="left:75%">⭐</div>
+          <div class="p-rocket" id="p-rocket">🚀</div>
+        </div>
+      </div>
+      <div class="q-meta">
+        <div class="timer" id="timer">5:00</div>
+        <div class="s-stars">⭐ <span id="s-stars-count">0</span></div>
+      </div>
+    </div>
+
+    <div class="flash-msg" id="flash-msg"></div>
+
+    <div class="question-card" id="question-card">
+      <div class="q-text" id="q-text">? × ? = ?</div>
+    </div>
+
+    <div class="answers-grid" id="answers-grid">
+      <button class="ans-btn" data-idx="0"></button>
+      <button class="ans-btn" data-idx="1"></button>
+      <button class="ans-btn" data-idx="2"></button>
+      <button class="ans-btn" data-idx="3"></button>
+    </div>
+
+    <div class="q-footer">
+      <div class="q-counter" id="q-counter">שאלה 1</div>
+    </div>
+
+  </div>
+
+  <!-- ===================== SCREEN: RESULT ===================== -->
+  <div class="screen" id="screen-result">
+    <div class="result-title" id="result-title">🎉 המשימה הושלמה!</div>
+    <div class="result-stars" id="result-stars">+0 ⭐</div>
+
+    <div class="result-stats-row">
+      <div class="rstat">
+        <div class="rstat-val" id="r-correct">0/0</div>
+        <div class="rstat-lbl">נכון</div>
+      </div>
+      <div class="rstat">
+        <div class="rstat-val" id="r-accuracy">0%</div>
+        <div class="rstat-lbl">דיוק</div>
+      </div>
+      <div class="rstat">
+        <div class="rstat-val" id="r-streak">0</div>
+        <div class="rstat-lbl">רצף מרבי</div>
+      </div>
+    </div>
+
+    <div class="result-panels">
+      <div class="result-panel mastered-panel">
+        <div class="panel-title">✓ שלטת היום</div>
+        <div class="panel-body" id="r-mastered"></div>
+      </div>
+      <div class="result-panel practice-panel">
+        <div class="panel-title">📚 המשיכי להתאמן</div>
+        <div class="panel-body" id="r-practice"></div>
+      </div>
+    </div>
+
+    <div class="result-btns">
+      <button class="start-btn" id="btn-play-again">🚀 שחקי שוב</button>
+      <button class="text-btn" id="btn-result-home">🏠 בית</button>
+    </div>
+  </div>
+
+  <!-- ===================== SCREEN: SETTINGS ===================== -->
+  <div class="screen" id="screen-settings">
+    <div class="settings-header">
+      <button class="back-btn" id="btn-settings-back">חזרה →</button>
+      <h2 class="settings-title">הגדרות</h2>
+    </div>
+    <div class="settings-body">
+      <div class="setting-row">
+        <span class="setting-label">🔊 אפקטי קול</span>
+        <button class="toggle-btn active" id="toggle-sound">פועל</button>
+      </div>
+      <div class="setting-divider"></div>
+      <p class="settings-section-label">איפוס התקדמות</p>
+      <button class="danger-btn" id="btn-reset-noya">🗑 איפוס התקדמות נויה</button>
+      <button class="danger-btn" id="btn-reset-miya">🗑 איפוס התקדמות מיה</button>
+      <div class="setting-divider"></div>
+      <div class="about-block">
+        <div class="about-text">נעשה באהבה ❤️ עבור נויה ומיה</div>
+        <div class="about-version">הרפתקת מתמטיקה גרסה 1.0</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
