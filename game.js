@@ -867,6 +867,13 @@ function init() {
     showScreen('settings');
   });
 
+  // Exit session mid-game
+  document.getElementById('btn-exit-session').addEventListener('click', () => {
+    if (confirm('לצאת מהמשימה? ההתקדמות עד כה תישמר.')) {
+      endSession();
+    }
+  });
+
   // Answer buttons
   document.querySelectorAll('.ans-btn').forEach(btn => {
     btn.addEventListener('click', function () {
