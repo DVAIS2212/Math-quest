@@ -5,10 +5,29 @@
 // ================================================================
 // CONSTANTS
 // ================================================================
-const SESSION_SECS   = 300;   // 5 minutes
+const SESSION_SECS   = 450;   // 7.5 minutes
 
 // Hebrew display names (storage keys stay in English)
 const HEB_NAME = { Noya: 'נויה', Miya: 'מיה' };
+
+// "Did you know?" facts for the splash screen (age-appropriate for 8-year-olds)
+const DID_YOU_KNOW = [
+  '🦋 ידעת? פרפרים טועמים אוכל עם הרגליים שלהם!',
+  '🐬 ידעת? דולפינים ישנים עם עין אחת פקוחה!',
+  '🍯 ידעת? דבש לעולם לא מתקלקל — מצאו דבש בן 3,000 שנה במצרים!',
+  '🐙 ידעת? לתמנון שלושה לבבות ודם בצבע כחול!',
+  '🐘 ידעת? פילים הם החיות היחידות שלא יכולות לקפץ!',
+  '🦄 ידעת? חד-קרן הוא החיה הלאומית של סקוטלנד!',
+  '🌈 ידעת? קשת בענן היא עגולה — אנחנו רואים רק חצי ממנה מעל הקרקע!',
+  '🐧 ידעת? פינגווינים מגישים אבנים אחד לשני כדי להראות אהבה!',
+  '🐝 ידעת? דבורה אחת מייצרת רק כפית דבש אחת בכל חייה!',
+  '🦒 ידעת? לג\'ירפה ולבני אדם יש בדיוק אותו מספר חוליות צוואר — 7!',
+  '⭐ ידעת? בשמיים יש יותר כוכבים ממגרגרי חול על כל חופות הים בעולם!',
+  '☀️ ידעת? השמש כל-כך גדולה שאפשר להכניס בתוכה מיליון כדורי-ארץ!',
+  '🌿 ידעת? עצים מתקשרים זה עם זה דרך השורשים מתחת לאדמה!',
+  '🐠 ידעת? כל הדגים בנמר המים יכולים לשנות את מינם במשך חייהם!',
+  '🌸 ידעת? פרחי הדובדבן ביפן פורחים רק שבוע אחד בשנה ואנשים נוסעים לראות אותם!',
+];
 const displayName = name => HEB_NAME[name] || name;
 const MAX_WEIGHT     = 10.0;
 const MIN_WEIGHT     = 0.1;
@@ -131,7 +150,7 @@ const Equations = {
   },
 
   // Build per-session effective weights, honouring daily rotation
-  sessionWeights(weights, history, sessionType) {
+  sessionWeights(weights, history) {
     const today = todayStr();
     let hist = history;
 
@@ -151,10 +170,6 @@ const Equations = {
 
       // Suppress recently-seen equations for today
       if (recentSet.has(eq.key)) weight *= 0.05;
-
-      // Session-type bias (gentle, not strict)
-      if (sessionType === 'mul-heavy' && eq.type === 'div') weight *= 0.5;
-      if (sessionType === 'div-heavy' && eq.type === 'mul') weight *= 0.5;
 
       return { eq, weight };
     });
@@ -407,15 +422,19 @@ const Streak = {
 // ================================================================
 // SESSION
 // ================================================================
-const nextSessionType = t => ({ mixed:'mul-heavy', 'mul-heavy':'div-heavy', 'div-heavy':'mixed' }[t] || 'mixed');
+
+// Weighted pick biased 70% multiplication / 30% division
+function pickWithTypeBias(effectiveWeights, shown) {
+  const preferType = Math.random() < 0.7 ? 'mul' : 'div';
+  const typed = effectiveWeights.filter(({ eq }) => eq.type === preferType);
+  return Equations.pick(typed, shown) || Equations.pick(effectiveWeights, shown);
+}
 
 function createSession(player, weights, history) {
-  const type = nextSessionType(player.lastSessionType || 'mixed');
-  const ew   = Equations.sessionWeights(weights, history, type);
+  const ew   = Equations.sessionWeights(weights, history);
   const weak = Equations.weakest(ew, 2);
 
   return {
-    type,
     effectiveWeights:  ew,
     weakQueue:         [...weak],   // prefill with 2 weakest
     repeatQueue:       [],          // wrong answers come back here
@@ -438,26 +457,26 @@ function createSession(player, weights, history) {
 function nextEquation(state) {
   let eq = null;
 
-  // Every 3rd question after the first 2, serve a repeat if pending
-  if (state.repeatQueue.length && state.qIndex >= 2 && state.qIndex % 3 === 0) {
+  // ~30% chance to serve a failed repeat (after first 2 warm-up questions)
+  if (state.repeatQueue.length && state.qIndex >= 2 && Math.random() < 0.30) {
     eq = state.repeatQueue.shift();
   }
   // Weak starters for the first 2 questions
   else if (state.weakQueue.length && state.qIndex < 2) {
     const cand = state.weakQueue.shift();
     eq = state.shown.has(cand.key)
-      ? Equations.pick(state.effectiveWeights, state.shown)
+      ? pickWithTypeBias(state.effectiveWeights, state.shown)
       : cand;
   }
-  // Weighted random
+  // 70% mul / 30% div weighted random
   else {
-    eq = Equations.pick(state.effectiveWeights, state.shown);
+    eq = pickWithTypeBias(state.effectiveWeights, state.shown);
   }
 
   // Safety: if all shown, reset and try again
   if (!eq) {
     state.shown.clear();
-    eq = Equations.pick(state.effectiveWeights, state.shown);
+    eq = pickWithTypeBias(state.effectiveWeights, state.shown);
   }
   if (!eq) eq = Equations.pool[0]; // absolute fallback
 
@@ -489,6 +508,12 @@ function updateSplash() {
       el.textContent = '!חוקרת חדשה';
     }
   });
+
+  // Pick a random "did you know?" fact
+  const dykEl = document.getElementById('did-you-know');
+  if (dykEl) {
+    dykEl.textContent = DID_YOU_KNOW[Math.floor(Math.random() * DID_YOU_KNOW.length)];
+  }
 }
 
 function showHome(player) {
@@ -547,8 +572,8 @@ function updateProgress(elapsed) {
   timerEl.classList.toggle('urgent', rem <= 30);
   if (rem <= 30 && rem % 2 === 0) Sound.tick();
 
-  // Milestones at 75s (25%), 150s (50%), 225s (75%)
-  [75, 150, 225].forEach((threshold, i) => {
+  // Milestones at 113s (25%), 225s (50%), 338s (75%)
+  [113, 225, 338].forEach((threshold, i) => {
     if (elapsed >= threshold && !sessionState.milestones[i]) {
       sessionState.milestones[i] = true;
       const ms = document.getElementById(`ms-${i + 1}`);
@@ -644,7 +669,7 @@ function startSession() {
   document.getElementById('progress-fill').style.width = '0%';
   document.getElementById('p-rocket').style.left = '0%';
   document.getElementById('timer').classList.remove('urgent');
-  document.getElementById('timer').textContent = '5:00';
+  document.getElementById('timer').textContent = '7:30';
   document.getElementById('s-stars-count').textContent = '0';
   document.querySelectorAll('.milestone').forEach(m => m.classList.remove('collected'));
   document.getElementById('flash-msg').textContent = '';
@@ -759,6 +784,7 @@ function handleAnswer(selectedVal, btnEl) {
     document.querySelectorAll('.ans-btn').forEach(b => {
       b.disabled = false;
       b.className = 'ans-btn';
+      b.blur();
     });
     showNextQuestion();
   }, isRight ? 750 : 1150);
@@ -772,7 +798,6 @@ function endSession() {
   currentPlayer.totalStars    = (currentPlayer.totalStars    || 0) + sessionState.sessionStars;
   currentPlayer.totalSessions = (currentPlayer.totalSessions || 0) + 1;
   currentPlayer.totalCorrect  = (currentPlayer.totalCorrect  || 0) + sessionState.correct;
-  currentPlayer.lastSessionType  = sessionState.type;
   currentPlayer.lastSessionStats = {
     correct:  sessionState.correct,
     total:    sessionState.total,
@@ -833,9 +858,26 @@ function buildStars() {
 // ================================================================
 // INIT & EVENT WIRING
 // ================================================================
+function buildMulTable(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  let html = '<table class="mul-table"><thead><tr><th>×</th>';
+  for (let c = 1; c <= 10; c++) html += `<th>${c}</th>`;
+  html += '</tr></thead><tbody>';
+  for (let r = 1; r <= 10; r++) {
+    html += `<tr><th>${r}</th>`;
+    for (let c = 1; c <= 10; c++) html += `<td>${r * c}</td>`;
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
 function init() {
   Equations.build();
   buildStars();
+  buildMulTable('mul-table-wrap');
+  buildMulTable('splash-mul-table-wrap');
   updateSplash();
   showScreen('splash');
 
@@ -852,6 +894,16 @@ function init() {
 
   // Home → start
   document.getElementById('btn-start').addEventListener('click', startSession);
+
+  // Multiplication table toggles (home + splash)
+  [['btn-table-toggle', 'mul-table-wrap'], ['btn-splash-table-toggle', 'splash-mul-table-wrap']].forEach(([btnId, wrapId]) => {
+    document.getElementById(btnId).addEventListener('click', function () {
+      const wrap = document.getElementById(wrapId);
+      const opening = wrap.hidden;
+      wrap.hidden = !opening;
+      this.querySelector('.table-arrow').textContent = opening ? '▲' : '▼';
+    });
+  });
 
   // Home → back to splash
   document.getElementById('btn-home-back').addEventListener('click', () => {

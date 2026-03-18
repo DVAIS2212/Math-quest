@@ -219,8 +219,22 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 24px 24px max(24px, env(safe-area-inset-bottom, 24px));
-  gap: clamp(16px, 4vh, 40px);
-  overflow: hidden;
+  gap: clamp(10px, 2.5vh, 28px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.did-you-know {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-dim);
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  max-width: 400px;
+  width: 100%;
+  line-height: 1.5;
 }
 
 .splash-content {
@@ -379,9 +393,62 @@ html, body {
   text-align: center;
   font-size: 13px;
   color: var(--text-dim);
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   min-height: 18px;
 }
+
+/* Multiplication table section */
+.mul-table-section {
+  width: 100%;
+  max-width: 480px;
+  margin: 12px auto 0;
+}
+.table-toggle-btn {
+  width: 100%;
+  padding: 11px 16px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  touch-action: manipulation;
+  transition: background 0.2s;
+}
+.table-toggle-btn:active { background: rgba(255,255,255,0.12); }
+.mul-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  border: 1px solid var(--card-border);
+}
+.mul-table-wrap[hidden] { display: none; }
+.mul-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.mul-table th,
+.mul-table td {
+  text-align: center;
+  padding: 5px 3px;
+  border: 1px solid rgba(255,255,255,0.06);
+  font-size: clamp(10px, 2.4vw, 13px);
+}
+.mul-table thead th {
+  background: rgba(255,255,255,0.07);
+  color: var(--player-color);
+  font-weight: 700;
+}
+.mul-table tbody th {
+  background: rgba(255,255,255,0.04);
+  color: var(--player-color);
+  font-weight: 700;
+}
+.mul-table td { color: var(--text); }
 
 /* ============================================================
    QUESTION SCREEN
@@ -512,6 +579,7 @@ html, body {
 /* Question card */
 .question-card {
   flex: 1;
+  max-height: clamp(140px, 28vh, 260px);
   display: flex;
   align-items: center;
   justify-content: center;
