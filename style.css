@@ -29,12 +29,12 @@
 
 /* Player-specific colour themes */
 body.player-Noya {
-  --player-color: #e879f9;
-  --player-glow:  rgba(232,121,249,0.35);
+  --player-color: #a855f7;
+  --player-glow:  rgba(168,85,247,0.35);
 }
 body.player-Miya {
-  --player-color: #22d3ee;
-  --player-glow:  rgba(34,211,238,0.35);
+  --player-color: #fb7185;
+  --player-glow:  rgba(251,113,133,0.35);
 }
 
 /* ============================================================
@@ -295,11 +295,11 @@ html, body {
 }
 .player-btn:active { transform: scale(0.96); }
 
-#btn-noya { border-color: rgba(232,121,249,0.5); }
-#btn-noya:hover, #btn-noya:focus { border-color: #e879f9; box-shadow: 0 0 24px rgba(232,121,249,0.3); }
+#btn-noya { border-color: rgba(168,85,247,0.5); }
+#btn-noya:hover, #btn-noya:focus { border-color: #a855f7; box-shadow: 0 0 24px rgba(168,85,247,0.3); }
 
-#btn-miya { border-color: rgba(34,211,238,0.5); }
-#btn-miya:hover, #btn-miya:focus { border-color: #22d3ee; box-shadow: 0 0 24px rgba(34,211,238,0.3); }
+#btn-miya { border-color: rgba(251,113,133,0.5); }
+#btn-miya:hover, #btn-miya:focus { border-color: #fb7185; box-shadow: 0 0 24px rgba(251,113,133,0.3); }
 
 .player-avatar { font-size: 40px; }
 .player-name   { font-size: 22px; font-weight: 800; }
@@ -949,7 +949,9 @@ html, body {
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  min-height: 52px;
   padding-top: max(20px, env(safe-area-inset-top, 20px));
+  padding-bottom: 16px;
   align-self: flex-start;
 }
 
@@ -997,6 +999,23 @@ html, body {
 .mode-btn-icon  { font-size: 44px; flex-shrink: 0; }
 .mode-btn-label { font-size: 22px; font-weight: 800; color: var(--text); }
 .mode-btn-desc  { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+
+.mode-check {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--green);
+  min-width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+  margin-inline-start: auto;
+}
+.mode-btn.mode-completed {
+  border-color: rgba(52,211,153,0.55) !important;
+  background: rgba(52,211,153,0.07);
+}
+.mode-btn.mode-completed .mode-btn-desc {
+  color: var(--green);
+}
 
 /* ============================================================
    READING SCREEN
@@ -1141,9 +1160,9 @@ html, body {
 
 .word-correct { color: var(--green); }
 .word-wrong {
-  color: var(--red);
+  color: var(--player-color);
   cursor: pointer;
-  border-bottom: 2px dotted var(--red);
+  border-bottom: 2px dotted var(--player-color);
   padding-bottom: 1px;
 }
 .word-wrong:active { opacity: 0.7; }

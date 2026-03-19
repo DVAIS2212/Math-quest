@@ -52,18 +52,24 @@ const READING_TEXTS = [
     "My best friend is Anna.\nWe go to school together.\nWe like to draw pictures.\nAnna draws flowers and stars.\nI draw cats and dogs.\nOur teacher says they are great.\nWe feel very proud.",
     "Every morning I wake up early.\nI wash my face and brush my teeth.\nThen I eat a yummy breakfast.\nAfter breakfast I get dressed.\nI say goodbye to my mom.\nI walk to the school bus.",
     "The forest is a magical place.\nTall trees reach up to the sky.\nColorful birds sing in the branches.\nA little fox runs in the leaves.\nSunlight dances through the trees.\nI love to walk in the forest.",
+    "Scientists discovered a fossil deep inside the mountain.\nThe fossil was millions of years old.\nIt showed the outline of a creature nobody had ever seen.\nThe team worked carefully to remove it from the stone.\nThey photographed every detail before moving it.\nBack at the lab, experts studied the ancient bones.\nIt turned out to be a brand new species.",
+    "The library was filled with thousands of books.\nEach shelf held stories from places near and far.\nMia picked a book about a girl who sailed the ocean.\nShe read for hours without looking up.\nWhen she finally closed the book she felt different somehow.\nShe decided she would travel the world one day.\nBooks had given her the biggest dream of her life.",
   ],
   // Level 4 — longer, richer vocabulary
   [
     "Last summer we went to the beach.\nThe sand was warm between my toes.\nI built a big sandcastle by the water.\nMy sister helped me dig the moat.\nWe collected pretty shells along the shore.\nWe ate ice cream as the sun set.\nIt was the best day of the whole summer.",
     "Sophie loved reading more than anything.\nEvery night before bed she chose a book.\nShe read about dragons and treasure.\nOne night she read so long she fell asleep.\nHer mom found her with the book on her face.\nSophie smiled as her mom turned off the light.\nShe was already dreaming of her next adventure.",
     "My grandmother makes amazing soup.\nShe adds carrots, potatoes, and noodles.\nThe soup simmers all morning on the stove.\nThe whole house smells warm and cozy.\nWhen the soup is ready we all sit together.\nGrandmother ladles it into our bowls.\nThere is nothing better on a cold winter day.",
+    "The ancient castle stood on a towering cliff above the valley.\nIts crumbling stone walls had survived hundreds of years of storms.\nNarrow windows looked out over the misty landscape below.\nA curious girl named Ella crept through the enormous wooden gates.\nShe imagined knights in armor and royal banquets long ago.\nEvery dusty corridor seemed to whisper a mysterious story.\nElla decided she would return with her sketchbook tomorrow.",
+    "The market was alive with extraordinary colors and delicious smells.\nVendors called out to strangers in cheerful, booming voices.\nPyramids of brilliant fruit gleamed beneath the morning sun.\nAn elderly woman sold delicate handwoven baskets in the corner.\nMia wandered slowly through the narrow aisles, fascinated by everything.\nShe spent her last coins on a small hand-painted vase.\nIt reminded her that the most beautiful things are often simple.",
   ],
-  // Level 5 — advanced
+  // Level 5 — advanced vocabulary and complex sentences
   [
-    "The ocean covers most of our planet Earth.\nBeneath the waves lives an amazing world.\nColorful fish swim through coral reefs.\nOctopuses hide in dark underwater caves.\nWhales sing to each other across great distances.\nScientists are still discovering new creatures every year.\nThe ocean holds many mysteries yet to be found.",
-    "Rosa loved to paint more than anything else.\nShe spent every afternoon in her bright art room.\nHer paintings were full of bold colors and wild shapes.\nOne day her teacher showed her work to the whole school.\nEveryone stopped to admire the paintings on the wall.\nRosa felt warm and happy deep inside.\nShe knew she wanted to be an artist forever.",
-    "Zara and her dad looked up at the night sky.\nThousands of tiny stars sparkled in the darkness.\nZara asked how far away the stars really were.\nHer dad said some were so far that their light takes years to reach us.\nZara thought about all the planets that might be out there.\nMaybe on one of them another girl was looking back at our sun.\nThat idea made Zara smile all the way home.",
+    "The ocean covers most of our planet Earth.\nBeneath the waves lives an astonishing world of creatures.\nColorful fish dart through magnificent coral reefs.\nOctopuses disguise themselves in dark underwater caves.\nWhales communicate with each other across tremendous distances.\nScientists are still discovering extraordinary new species every year.\nThe ocean holds countless mysteries that remain unexplored.",
+    "Rosa loved to paint more than anything else in the world.\nShe spent every afternoon in her sunlit art studio.\nHer paintings were full of bold, unexpected colors and wild shapes.\nOne day her teacher displayed her work throughout the entire school.\nEveryone paused to admire the spectacular paintings on the wall.\nRosa felt a warm glow of pride deep inside her chest.\nShe was more certain than ever that she was born to be an artist.",
+    "Zara and her father gazed up at the vast night sky.\nThousands of glittering stars sparkled against the darkness.\nZara asked how far away those distant points of light really were.\nHer father explained that some were so remote their light takes years to arrive.\nZara contemplated the enormous scale of the universe in silence.\nPerhaps on a distant planet another curious girl was looking back at our sun.\nThat breathtaking idea made Zara smile the whole way home.",
+    "Bioluminescence is the remarkable ability of living organisms to produce their own light.\nDeep ocean creatures rely on this phenomenon to navigate perpetual darkness.\nScientists believe this extraordinary adaptation evolved independently in hundreds of species.\nFireflies use their astonishing flashes to communicate above summer meadows.\nThe chemical reaction involves a compound called luciferin combining with oxygen.\nResearchers are investigating whether this process could inspire sustainable lighting technologies.\nNature continues to astonish us with its ingenious solutions to complex problems.",
+    "Every language in the world shapes the way its speakers perceive reality.\nSome languages have dozens of distinct words to describe different types of snow.\nOthers possess a single precise word for the bittersweet feeling of something ending.\nLinguists who study these differences have made a fascinating and profound discovery.\nThe vocabulary available to us actually influences the thoughts we are capable of thinking.\nThis means that learning a new language is not merely a skill but a transformation.\nEach new word you master becomes a new lens through which to interpret the world.",
   ],
 ];
 
@@ -82,6 +88,19 @@ let audioCtx         = null;  // Web Audio context (lazy)
 let settingsFrom     = 'splash';
 let readingState     = null;
 let speechRec        = null;
+
+// Pick the most natural-sounding English TTS voice available
+function getBestVoice() {
+  const voices   = speechSynthesis.getVoices();
+  const preferred = ['Samantha', 'Google US English', 'Microsoft Aria', 'Karen', 'Moira', 'Tessa', 'Alex'];
+  for (const name of preferred) {
+    const v = voices.find(v => v.name.includes(name));
+    if (v) return v;
+  }
+  return voices.find(v => v.lang === 'en-US') ||
+         voices.find(v => v.lang.startsWith('en')) ||
+         null;
+}
 
 // ================================================================
 // STORAGE
@@ -131,9 +150,21 @@ const Store = {
   },
 
   resetPlayer(name) {
-    ['player','weights','history'].forEach(t =>
+    ['player','weights','history','reading','daily'].forEach(t =>
       localStorage.removeItem(this._key(t, name))
     );
+  },
+
+  getDailyCompletion(name) {
+    const raw   = localStorage.getItem(this._key('daily', name));
+    const today = todayStr();
+    if (!raw) return { date: today, math: false, english: false };
+    const data = JSON.parse(raw);
+    if (data.date !== today) return { date: today, math: false, english: false };
+    return data;
+  },
+  saveDailyCompletion(name, data) {
+    localStorage.setItem(this._key('daily', name), JSON.stringify(data));
   },
 
   getReadingData(name) {
@@ -189,6 +220,55 @@ const Equations = {
             dividend: prod, divisor: a, answer: b,
             display: `${prod} \u00f7 ${a}` // ÷
           });
+        }
+      }
+    }
+
+    // Addition facts: a+b where 1 ≤ a ≤ b ≤ 10 (55 unique facts, sums 2–20)
+    // Subtraction derived: (a+b)−a=b for each pair where a < b (45 facts)
+    for (let a = 1; a <= 10; a++) {
+      for (let b = a; b <= 10; b++) {
+        const sum = a + b;
+        this.pool.push({
+          key:     `add_${a}_${b}`,
+          type:    'add',
+          a, b,
+          answer:  sum,
+          display: `${a} + ${b}`
+        });
+        if (a < b) {
+          // sum − a = b
+          this.pool.push({
+            key:     `sub_${sum}_${a}`,
+            type:    'sub',
+            a:       sum, b: a,
+            answer:  b,
+            display: `${sum} \u2212 ${a}` // −
+          });
+          // sum − b = a
+          this.pool.push({
+            key:     `sub_${sum}_${b}`,
+            type:    'sub',
+            a:       sum, b,
+            answer:  a,
+            display: `${sum} \u2212 ${b}` // −
+          });
+        }
+      }
+    }
+
+    // Round-number addition/subtraction with multiples of 10 (up to 100)
+    // Use 't' prefix keys to avoid collision with the 1-10 range above
+    const TENS = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+    for (const a of TENS) {
+      for (const b of TENS) {
+        if (a > b) continue; // use a ≤ b only
+        const sum = a + b;
+        if (sum > 100) continue;
+        this.pool.push({ key: `addt_${a}_${b}`, type: 'add', a, b, answer: sum, display: `${a} + ${b}` });
+        if (a < b) {
+          this.pool.push({ key: `subt_${sum}_${a}`, type: 'sub', a: sum, b: a, answer: b, display: `${sum} \u2212 ${a}` });
+          this.pool.push({ key: `subt_${sum}_${b}`, type: 'sub', a: sum, b,    answer: a, display: `${sum} \u2212 ${b}` });
         }
       }
     }
@@ -472,8 +552,15 @@ const Streak = {
 // SESSION
 // ================================================================
 
-// Weighted pick biased 70% multiplication / 30% division
+// Weighted pick: 30% add/sub, 70% mul/div (biased 70% mul / 30% div within that)
 function pickWithTypeBias(effectiveWeights, shown) {
+  if (Math.random() < 0.30) {
+    // 30% addition / subtraction
+    const addSub = effectiveWeights.filter(({ eq }) => eq.type === 'add' || eq.type === 'sub');
+    const picked = Equations.pick(addSub, shown);
+    if (picked) return picked;
+  }
+  // 70% mul/div (or fallback if no add/sub available)
   const preferType = Math.random() < 0.7 ? 'mul' : 'div';
   const typed = effectiveWeights.filter(({ eq }) => eq.type === preferType);
   return Equations.pick(typed, shown) || Equations.pick(effectiveWeights, shown);
@@ -689,6 +776,23 @@ function updateSettings(player) {
 // ================================================================
 function showModeSelect(player) {
   document.getElementById('mode-player-name').textContent = `👩‍🚀 ${displayName(player.name)}`;
+
+  // Daily completion badges
+  const daily   = Store.getDailyCompletion(player.name);
+  const mathBtn = document.getElementById('btn-mode-math');
+  const engBtn  = document.getElementById('btn-mode-english');
+  const mathChk = document.getElementById('check-math');
+  const engChk  = document.getElementById('check-english');
+  const mathDesc = document.getElementById('desc-math');
+  const engDesc  = document.getElementById('desc-english');
+
+  if (mathChk)  mathChk.textContent  = daily.math    ? '✓' : '';
+  if (engChk)   engChk.textContent   = daily.english ? '✓' : '';
+  if (mathDesc) mathDesc.textContent  = daily.math    ? 'הושלם היום ✓' : 'כפל וחילוק';
+  if (engDesc)  engDesc.textContent   = daily.english ? 'הושלם היום ✓' : 'קריאה בקול';
+  if (mathBtn)  mathBtn.classList.toggle('mode-completed', !!daily.math);
+  if (engBtn)   engBtn.classList.toggle('mode-completed', !!daily.english);
+
   showScreen('mode');
 }
 
@@ -865,7 +969,7 @@ function processReadingResults() {
   const total    = results.length;
   const accuracy = total > 0 ? correct / total : 0;
 
-  // Save progress
+  // Save reading progress
   const rd = Store.getReadingData(currentPlayer.name);
   if (accuracy >= 0.8) {
     rd.consecutiveGood = (rd.consecutiveGood || 0) + 1;
@@ -877,6 +981,11 @@ function processReadingResults() {
     rd.consecutiveGood = 0;
   }
   Store.saveReadingData(currentPlayer.name, rd);
+
+  // Mark English as completed for today
+  const daily = Store.getDailyCompletion(currentPlayer.name);
+  daily.english = true;
+  Store.saveDailyCompletion(currentPlayer.name, daily);
 
   showReadingResult(results, wordObjects, correct, total, accuracy);
 }
@@ -910,12 +1019,15 @@ function showReadingResult(results, wordObjects, correct, total, accuracy) {
   }
   wordsEl.innerHTML = html;
 
-  // Tap wrong word to hear it
+  // Tap wrong word to hear it spoken clearly
   wordsEl.querySelectorAll('.word-wrong').forEach(el => {
     el.addEventListener('click', () => {
       const utt = new SpeechSynthesisUtterance(el.dataset.word);
-      utt.lang = 'en-US';
-      utt.rate = 0.75;
+      utt.lang  = 'en-US';
+      utt.rate  = 0.72;
+      utt.pitch = 1.05;
+      const voice = getBestVoice();
+      if (voice) utt.voice = voice;
       speechSynthesis.cancel();
       speechSynthesis.speak(utt);
     });
@@ -1106,6 +1218,13 @@ function endSession() {
   history.dayBucket = (history.dayBucket || 0) + 1;
   Store.saveHistory(currentPlayer.name, history);
 
+  // Mark math as completed for today (if played at least 5 questions)
+  if (sessionState.total >= 5) {
+    const daily = Store.getDailyCompletion(currentPlayer.name);
+    daily.math = true;
+    Store.saveDailyCompletion(currentPlayer.name, daily);
+  }
+
   showResult(sessionState, currentPlayer);
 }
 
@@ -1177,6 +1296,12 @@ function init() {
   updateSplash();
   showScreen('splash');
 
+  // Pre-load TTS voices (async on some browsers/iOS)
+  if (window.speechSynthesis) {
+    speechSynthesis.getVoices();
+    speechSynthesis.addEventListener('voiceschanged', () => { speechSynthesis.getVoices(); });
+  }
+
   // Mode select
   document.getElementById('btn-mode-back').addEventListener('click', () => {
     updateSplash();
@@ -1187,6 +1312,9 @@ function init() {
     showHome(currentPlayer);
   });
   document.getElementById('btn-mode-english').addEventListener('click', startReadingSession);
+  document.getElementById('btn-mode-home').addEventListener('click', () => {
+    showHome(currentPlayer);
+  });
 
   // Reading screen
   document.getElementById('btn-reading-back').addEventListener('click', () => {
@@ -1199,7 +1327,10 @@ function init() {
     if (!readingState) return;
     const utt = new SpeechSynthesisUtterance(readingState.text.replace(/\n/g, ' '));
     utt.lang = 'en-US';
-    utt.rate = 0.85;
+    utt.rate = 0.82;
+    utt.pitch = 1.05;
+    const voice = getBestVoice();
+    if (voice) utt.voice = voice;
     speechSynthesis.cancel();
     speechSynthesis.speak(utt);
   });
@@ -1232,11 +1363,9 @@ function init() {
     });
   });
 
-  // Home → back to splash
+  // Home → back to mode select
   document.getElementById('btn-home-back').addEventListener('click', () => {
-    updateSplash();
-    document.body.className = '';
-    showScreen('splash');
+    showModeSelect(currentPlayer);
   });
 
   // Home → settings
@@ -1264,11 +1393,10 @@ function init() {
   // Result → play again
   document.getElementById('btn-play-again').addEventListener('click', startSession);
 
-  // Result → home
+  // Result → mode select (so player can see completion checkmarks and pick next subject)
   document.getElementById('btn-result-home').addEventListener('click', () => {
-    // Refresh player data from storage (stars updated)
     currentPlayer = Store.getPlayer(currentPlayer.name);
-    showHome(currentPlayer);
+    showModeSelect(currentPlayer);
   });
 
   // Settings → back
