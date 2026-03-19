@@ -29,6 +29,44 @@ const DID_YOU_KNOW = [
   '🌸 ידעת? פרחי הדובדבן ביפן פורחים רק שבוע אחד בשנה ואנשים נוסעים לראות אותם!',
 ];
 const displayName = name => HEB_NAME[name] || name;
+
+const DEFAULT_READING_LEVEL = { Noya: 1, Miya: 2 };
+
+const READING_TEXTS = [
+  null, // index 0 unused
+  // Level 1 — very simple (Noya starting level)
+  [
+    "I see a cat.\nThe cat is big.\nI can run.\nI am happy.",
+    "I have a dog.\nThe dog runs.\nMy dog is fun.\nI love my dog.",
+    "The sun is hot.\nI see a bee.\nThe bee is small.\nI can hop.",
+    "A red ball.\nThe ball is big.\nI kick the ball.\nI run fast.",
+  ],
+  // Level 2 — simple (Miya starting level)
+  [
+    "The cat is small.\nThe cat is soft.\nThe cat sits in the sun.\nThe sun is warm.\nThe cat is happy.\nThe cat has a ball.\nThe ball is red.\nThe cat plays with the ball.\nThe cat is tired.\nThe cat goes to sleep.",
+    "I have a pet fish.\nThe fish is blue.\nThe fish swims all day.\nI give my fish food.\nMy fish is happy.\nI love my pet fish.",
+    "The dog runs in the park.\nThe park is big and green.\nA bird sits in a tree.\nThe bird sings a song.\nI walk in the park.\nI see red flowers.\nThe sky is bright and blue.",
+  ],
+  // Level 3 — more complex sentences
+  [
+    "My best friend is Anna.\nWe go to school together.\nWe like to draw pictures.\nAnna draws flowers and stars.\nI draw cats and dogs.\nOur teacher says they are great.\nWe feel very proud.",
+    "Every morning I wake up early.\nI wash my face and brush my teeth.\nThen I eat a yummy breakfast.\nAfter breakfast I get dressed.\nI say goodbye to my mom.\nI walk to the school bus.",
+    "The forest is a magical place.\nTall trees reach up to the sky.\nColorful birds sing in the branches.\nA little fox runs in the leaves.\nSunlight dances through the trees.\nI love to walk in the forest.",
+  ],
+  // Level 4 — longer, richer vocabulary
+  [
+    "Last summer we went to the beach.\nThe sand was warm between my toes.\nI built a big sandcastle by the water.\nMy sister helped me dig the moat.\nWe collected pretty shells along the shore.\nWe ate ice cream as the sun set.\nIt was the best day of the whole summer.",
+    "Sophie loved reading more than anything.\nEvery night before bed she chose a book.\nShe read about dragons and treasure.\nOne night she read so long she fell asleep.\nHer mom found her with the book on her face.\nSophie smiled as her mom turned off the light.\nShe was already dreaming of her next adventure.",
+    "My grandmother makes amazing soup.\nShe adds carrots, potatoes, and noodles.\nThe soup simmers all morning on the stove.\nThe whole house smells warm and cozy.\nWhen the soup is ready we all sit together.\nGrandmother ladles it into our bowls.\nThere is nothing better on a cold winter day.",
+  ],
+  // Level 5 — advanced
+  [
+    "The ocean covers most of our planet Earth.\nBeneath the waves lives an amazing world.\nColorful fish swim through coral reefs.\nOctopuses hide in dark underwater caves.\nWhales sing to each other across great distances.\nScientists are still discovering new creatures every year.\nThe ocean holds many mysteries yet to be found.",
+    "Rosa loved to paint more than anything else.\nShe spent every afternoon in her bright art room.\nHer paintings were full of bold colors and wild shapes.\nOne day her teacher showed her work to the whole school.\nEveryone stopped to admire the paintings on the wall.\nRosa felt warm and happy deep inside.\nShe knew she wanted to be an artist forever.",
+    "Zara and her dad looked up at the night sky.\nThousands of tiny stars sparkled in the darkness.\nZara asked how far away the stars really were.\nHer dad said some were so far that their light takes years to reach us.\nZara thought about all the planets that might be out there.\nMaybe on one of them another girl was looking back at our sun.\nThat idea made Zara smile all the way home.",
+  ],
+];
+
 const MAX_WEIGHT     = 10.0;
 const MIN_WEIGHT     = 0.1;
 const RECENT_CAP     = 40;    // keep last 40 equations out of daily rotation
@@ -42,6 +80,8 @@ let sessionState     = null;  // active session
 let sessionTimer     = null;  // setInterval handle
 let audioCtx         = null;  // Web Audio context (lazy)
 let settingsFrom     = 'splash';
+let readingState     = null;
+let speechRec        = null;
 
 // ================================================================
 // STORAGE
@@ -94,6 +134,15 @@ const Store = {
     ['player','weights','history'].forEach(t =>
       localStorage.removeItem(this._key(t, name))
     );
+  },
+
+  getReadingData(name) {
+    const raw = localStorage.getItem(this._key('reading', name));
+    if (raw) return JSON.parse(raw);
+    return { level: DEFAULT_READING_LEVEL[name] || 1, consecutiveGood: 0 };
+  },
+  saveReadingData(name, data) {
+    localStorage.setItem(this._key('reading', name), JSON.stringify(data));
   }
 };
 
@@ -636,6 +685,253 @@ function updateSettings(player) {
 }
 
 // ================================================================
+// MODE SELECT
+// ================================================================
+function showModeSelect(player) {
+  document.getElementById('mode-player-name').textContent = `👩‍🚀 ${displayName(player.name)}`;
+  showScreen('mode');
+}
+
+// ================================================================
+// READING
+// ================================================================
+function startReadingSession() {
+  const data   = Store.getReadingData(currentPlayer.name);
+  const level  = Math.min(data.level, READING_TEXTS.length - 1);
+  const pool   = READING_TEXTS[level];
+  const text   = pool[Math.floor(Math.random() * pool.length)];
+
+  // Build word objects: {raw, clean}
+  const wordObjects = text.replace(/\n/g, ' ').split(/\s+/).filter(Boolean).map(w => ({
+    raw:   w,
+    clean: w.toLowerCase().replace(/[^a-z']/g, '')
+  })).filter(w => w.clean.length > 0);
+
+  readingState = {
+    level, text, wordObjects,
+    transcript: '',
+    recording:  false,
+    intentionalStop: false
+  };
+
+  // Populate UI
+  document.getElementById('reading-level-badge').textContent = `רמה ${level}`;
+  document.getElementById('reading-text').innerHTML =
+    text.split('\n').map(l => `<span>${l}</span>`).join('<br>');
+
+  // Reset to reading phase
+  document.getElementById('reading-phase').hidden  = false;
+  document.getElementById('results-phase').hidden  = true;
+  document.getElementById('recording-status').textContent = '';
+  const btn = document.getElementById('btn-record');
+  btn.classList.remove('recording');
+  btn.disabled = false;
+  document.getElementById('record-icon').textContent  = '🎤';
+  document.getElementById('record-label').textContent = 'התחילי לקרוא';
+
+  showScreen('reading');
+}
+
+function handleRecordBtn() {
+  if (!readingState) return;
+  if (readingState.recording) {
+    stopReading();
+  } else {
+    startReading();
+  }
+}
+
+function startReading() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    document.getElementById('recording-status').textContent =
+      'זיהוי קול לא נתמך. נסי ב-Safari עם iOS 14.5 ומעלה.';
+    return;
+  }
+
+  const rec = new SR();
+  speechRec = rec;
+  rec.lang = 'en-US';
+  rec.continuous = true;
+  rec.interimResults = false;
+
+  let accumulated = '';
+
+  rec.onresult = (event) => {
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) accumulated += event.results[i][0].transcript + ' ';
+    }
+    readingState.transcript = accumulated;
+    document.getElementById('recording-status').textContent = accumulated.trim().slice(-70);
+  };
+
+  rec.onerror = (e) => {
+    if (e.error === 'not-allowed') {
+      document.getElementById('recording-status').textContent = 'נדרשת הרשאה למיקרופון';
+    } else if (e.error !== 'aborted') {
+      document.getElementById('recording-status').textContent = 'שגיאה: ' + e.error;
+    }
+    readingState.recording = false;
+    const btn = document.getElementById('btn-record');
+    if (btn) { btn.classList.remove('recording'); btn.disabled = false; }
+  };
+
+  rec.onend = () => {
+    if (readingState && readingState.recording && speechRec === rec) {
+      setTimeout(() => {
+        if (readingState && readingState.recording && speechRec === rec) {
+          try { rec.start(); } catch(e) {}
+        }
+      }, 150);
+    }
+  };
+
+  try {
+    rec.start();
+  } catch(e) {
+    document.getElementById('recording-status').textContent = 'לא ניתן להפעיל מיקרופון';
+    return;
+  }
+
+  readingState.recording = true;
+  const btn = document.getElementById('btn-record');
+  btn.classList.add('recording');
+  document.getElementById('record-icon').textContent  = '⏹';
+  document.getElementById('record-label').textContent = 'סיימתי';
+  document.getElementById('recording-status').textContent = '...מקשיבה — קראי בקול רם';
+}
+
+function stopReading() {
+  readingState.recording = false;
+  const rec = speechRec;
+  speechRec = null;
+  if (rec) { try { rec.stop(); } catch(e) {} }
+
+  const btn = document.getElementById('btn-record');
+  if (btn) { btn.classList.remove('recording'); btn.disabled = true; }
+  document.getElementById('record-icon').textContent  = '⏳';
+  document.getElementById('record-label').textContent = '...מעבדת';
+  document.getElementById('recording-status').textContent = '';
+
+  setTimeout(processReadingResults, 500);
+}
+
+function wordClose(a, b) {
+  if (!a || !b || a === b) return a === b;
+  if (Math.abs(a.length - b.length) > 2) return false;
+  // Allow 1 edit distance for words longer than 3 chars
+  const longer = a.length >= b.length ? a : b;
+  const shorter = a.length >= b.length ? b : a;
+  let diffs = longer.length - shorter.length;
+  for (let i = 0; i < shorter.length; i++) {
+    if (shorter[i] !== longer[i]) diffs++;
+    if (diffs > 1) return false;
+  }
+  return diffs <= 1;
+}
+
+function alignWords(expected, spoken) {
+  const n = expected.length, m = spoken.length;
+  // LCS-based alignment
+  const dp = Array.from({length: n + 1}, () => new Uint16Array(m + 1));
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      if (expected[i-1] === spoken[j-1] || wordClose(expected[i-1], spoken[j-1])) {
+        dp[i][j] = dp[i-1][j-1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+      }
+    }
+  }
+  // Backtrack
+  const matched = new Array(n).fill(false);
+  let i = n, j = m;
+  while (i > 0 && j > 0) {
+    if (expected[i-1] === spoken[j-1] || wordClose(expected[i-1], spoken[j-1])) {
+      matched[i-1] = true; i--; j--;
+    } else if (dp[i-1][j] >= dp[i][j-1]) { i--; } else { j--; }
+  }
+  return expected.map((word, idx) => ({ word, correct: matched[idx] }));
+}
+
+function processReadingResults() {
+  const wordObjects = readingState.wordObjects;
+  const expected    = wordObjects.map(w => w.clean);
+  const raw         = readingState.transcript.trim().toLowerCase().replace(/[^a-z\s']/g, '');
+  const spoken      = raw.split(/\s+/).filter(Boolean);
+
+  const results  = alignWords(expected, spoken);
+  const correct  = results.filter(r => r.correct).length;
+  const total    = results.length;
+  const accuracy = total > 0 ? correct / total : 0;
+
+  // Save progress
+  const rd = Store.getReadingData(currentPlayer.name);
+  if (accuracy >= 0.8) {
+    rd.consecutiveGood = (rd.consecutiveGood || 0) + 1;
+    if (rd.consecutiveGood >= 3 && READING_TEXTS[rd.level + 1]) {
+      rd.level++;
+      rd.consecutiveGood = 0;
+    }
+  } else {
+    rd.consecutiveGood = 0;
+  }
+  Store.saveReadingData(currentPlayer.name, rd);
+
+  showReadingResult(results, wordObjects, correct, total, accuracy);
+}
+
+function showReadingResult(results, wordObjects, correct, total, accuracy) {
+  document.getElementById('reading-phase').hidden = true;
+  document.getElementById('results-phase').hidden = false;
+
+  const pct = Math.round(accuracy * 100);
+  document.getElementById('results-score').textContent =
+    `${correct}/${total} מילים נכון · ${pct}%`;
+
+  // Build colored word display (preserving newlines)
+  const wordsEl = document.getElementById('results-words');
+  let html = '';
+  let wi = 0;
+  const lines = readingState.text.split('\n');
+  for (let li = 0; li < lines.length; li++) {
+    const lineWords = lines[li].split(/\s+/).filter(Boolean);
+    for (const rawW of lineWords) {
+      const r = results[wi++];
+      if (!r) continue;
+      const cleanW = r.word;
+      if (r.correct) {
+        html += `<span class="word-correct">${rawW}</span> `;
+      } else {
+        html += `<span class="word-wrong" data-word="${cleanW}">${rawW}</span> `;
+      }
+    }
+    if (li < lines.length - 1) html += '<br>';
+  }
+  wordsEl.innerHTML = html;
+
+  // Tap wrong word to hear it
+  wordsEl.querySelectorAll('.word-wrong').forEach(el => {
+    el.addEventListener('click', () => {
+      const utt = new SpeechSynthesisUtterance(el.dataset.word);
+      utt.lang = 'en-US';
+      utt.rate = 0.75;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utt);
+    });
+  });
+
+  const name = displayName(currentPlayer.name);
+  let msg = '';
+  if (total === 0) msg = `${name}, לא זיהיתי קריאה. נסי שוב! 🎤`;
+  else if (accuracy >= 0.9) msg = `🌟 מדהים, ${name}! קראת נפלא!`;
+  else if (accuracy >= 0.75) msg = `👏 כל הכבוד, ${name}! המשיכי להתאמן!`;
+  else if (accuracy >= 0.5)  msg = `💪 יפה, ${name}! נסי שוב לשפר!`;
+  else                        msg = `🚀 ${name}, תרגלי שוב — את יכולה!`;
+  document.getElementById('results-message').textContent = msg;
+}
+
+// ================================================================
 // GAME FLOW
 // ================================================================
 function selectPlayer(name) {
@@ -651,7 +947,7 @@ function selectPlayer(name) {
   // Apply player colour theme to body
   document.body.className = `player-${name}`;
 
-  showHome(player);
+  showModeSelect(player);
 }
 
 function startSession() {
@@ -880,6 +1176,37 @@ function init() {
   buildMulTable('splash-mul-table-wrap');
   updateSplash();
   showScreen('splash');
+
+  // Mode select
+  document.getElementById('btn-mode-back').addEventListener('click', () => {
+    updateSplash();
+    document.body.className = '';
+    showScreen('splash');
+  });
+  document.getElementById('btn-mode-math').addEventListener('click', () => {
+    showHome(currentPlayer);
+  });
+  document.getElementById('btn-mode-english').addEventListener('click', startReadingSession);
+
+  // Reading screen
+  document.getElementById('btn-reading-back').addEventListener('click', () => {
+    if (speechRec) { try { speechRec.stop(); } catch(e) {} speechRec = null; }
+    if (readingState) readingState.recording = false;
+    showModeSelect(currentPlayer);
+  });
+  document.getElementById('btn-record').addEventListener('click', handleRecordBtn);
+  document.getElementById('btn-listen-text').addEventListener('click', () => {
+    if (!readingState) return;
+    const utt = new SpeechSynthesisUtterance(readingState.text.replace(/\n/g, ' '));
+    utt.lang = 'en-US';
+    utt.rate = 0.85;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utt);
+  });
+  document.getElementById('btn-reading-again').addEventListener('click', startReadingSession);
+  document.getElementById('btn-reading-home').addEventListener('click', () => {
+    showModeSelect(currentPlayer);
+  });
 
   // Player selection
   document.getElementById('btn-noya').addEventListener('click', () => selectPlayer('Noya'));

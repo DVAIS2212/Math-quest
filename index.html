@@ -85,6 +85,61 @@
     <button class="text-btn" id="btn-home-back">החלפי חוקרת ←</button>
   </div>
 
+  <!-- ===================== SCREEN: MODE SELECT ===================== -->
+  <div class="screen" id="screen-mode">
+    <div class="mode-header">
+      <button class="back-btn" id="btn-mode-back">חזרה →</button>
+      <div class="mode-player-name" id="mode-player-name"></div>
+    </div>
+    <div class="mode-title">?מה נעשה היום</div>
+    <div class="mode-buttons">
+      <button class="mode-btn mode-math" id="btn-mode-math">
+        <span class="mode-btn-icon">🔢</span>
+        <div class="mode-btn-text">
+          <div class="mode-btn-label">מתמטיקה</div>
+          <div class="mode-btn-desc">כפל וחילוק</div>
+        </div>
+      </button>
+      <button class="mode-btn mode-english" id="btn-mode-english">
+        <span class="mode-btn-icon">📖</span>
+        <div class="mode-btn-text">
+          <div class="mode-btn-label">אנגלית</div>
+          <div class="mode-btn-desc">קריאה בקול</div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================== SCREEN: READING ===================== -->
+  <div class="screen" id="screen-reading">
+    <div class="reading-header">
+      <button class="back-btn" id="btn-reading-back">חזרה →</button>
+      <div class="reading-level-badge" id="reading-level-badge">רמה 1</div>
+    </div>
+
+    <div id="reading-phase">
+      <div class="reading-instruction">:קראי את הטקסט בקול רם</div>
+      <div class="reading-text" id="reading-text" dir="ltr"></div>
+      <button class="listen-btn" id="btn-listen-text">🔊 הקשיבי לטקסט קודם</button>
+      <div class="recording-status" id="recording-status"></div>
+      <button class="record-btn" id="btn-record">
+        <span class="record-icon" id="record-icon">🎤</span>
+        <span class="record-label" id="record-label">התחילי לקרוא</span>
+      </button>
+    </div>
+
+    <div id="results-phase" hidden>
+      <div class="results-score" id="results-score"></div>
+      <div class="results-hint">:לחצי על מילה אדומה כדי לשמוע אותה</div>
+      <div class="results-words" id="results-words"></div>
+      <div class="results-message" id="results-message"></div>
+      <div class="result-actions">
+        <button class="start-btn" id="btn-reading-again">🎤 נסי שוב</button>
+        <button class="text-btn" id="btn-reading-home">← בית</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== SCREEN: QUESTION ===================== -->
   <div class="screen" id="screen-question">
 
