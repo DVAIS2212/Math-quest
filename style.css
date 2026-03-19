@@ -1097,12 +1097,28 @@ body.player-Miya #bg-stars {
   border-radius: var(--radius);
   padding: 20px;
   font-size: clamp(19px, 4.5vw, 26px);
-  line-height: 2;
+  line-height: 2.3;
   color: var(--text);
   direction: ltr;
   text-align: left;
   font-family: Georgia, 'Times New Roman', serif;
   letter-spacing: 0.01em;
+}
+
+/* Karaoke-style word highlighting while TTS reads */
+.read-word {
+  display: inline;
+  border-radius: 5px;
+  padding: 1px 2px;
+  transition: background 0.08s, color 0.08s;
+}
+.read-word.reading-now {
+  background: var(--player-color);
+  color: #000;
+  font-weight: 700;
+  border-radius: 5px;
+  padding: 1px 5px;
+  box-shadow: 0 0 10px var(--player-glow);
 }
 
 .listen-btn {

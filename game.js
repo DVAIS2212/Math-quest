@@ -829,6 +829,69 @@ function showModeSelect(player) {
 // ================================================================
 // READING
 // ================================================================
+
+// Render reading text as individual word-spans so karaoke highlighting works.
+// Returns the flat (newline→space) version for TTS charIndex matching.
+function renderReadingText(text) {
+  const container = document.getElementById('reading-text');
+  const flatText  = text.replace(/\n/g, ' ');
+  const lines     = text.split('\n');
+  let html = '';
+  let charOffset = 0;
+
+  for (let li = 0; li < lines.length; li++) {
+    const lineWords = lines[li].split(/\s+/).filter(Boolean);
+    for (const word of lineWords) {
+      const pos = flatText.indexOf(word, charOffset);
+      html += `<span class="read-word" data-char="${pos}">${word}</span> `;
+      charOffset = pos + word.length;
+    }
+    if (li < lines.length - 1) html += '<br>';
+  }
+  container.innerHTML = html;
+  return flatText;
+}
+
+// Read text aloud slowly with karaoke-style word highlighting
+function readAloudWithHighlight(text) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+
+  const container = document.getElementById('reading-text');
+  const flatText  = renderReadingText(text);   // re-render as word spans
+  const spans     = Array.from(container.querySelectorAll('.read-word'));
+  const wordMap   = spans.map(el => ({ pos: parseInt(el.dataset.char), el }));
+
+  setTimeout(() => {
+    const utt = new SpeechSynthesisUtterance(flatText);
+    utt.lang   = 'en-US';
+    utt.rate   = currentPlayer && currentPlayer.name === 'Noya' ? 0.48 : 0.62;
+    utt.pitch  = 1.10;
+    utt.volume = 0.95;
+    const voice = getBestVoice();
+    if (voice) utt.voice = voice;
+
+    utt.onboundary = (e) => {
+      if (e.name !== 'word') return;
+      spans.forEach(s => s.classList.remove('reading-now'));
+      // Find the span whose char position is closest to this charIndex
+      let best = null, minDiff = Infinity;
+      for (const { pos, el } of wordMap) {
+        const diff = Math.abs(pos - e.charIndex);
+        if (diff < minDiff) { minDiff = diff; best = el; }
+      }
+      if (best) {
+        best.classList.add('reading-now');
+        best.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    };
+
+    utt.onend = () => spans.forEach(s => s.classList.remove('reading-now'));
+
+    speechSynthesis.speak(utt);
+  }, 80);
+}
+
 function startReadingSession() {
   const data   = Store.getReadingData(currentPlayer.name);
   const level  = Math.min(data.level, READING_TEXTS.length - 1);
@@ -848,10 +911,9 @@ function startReadingSession() {
     intentionalStop: false
   };
 
-  // Populate UI
+  // Populate UI using word spans (enables karaoke highlighting)
   document.getElementById('reading-level-badge').textContent = `רמה ${level}`;
-  document.getElementById('reading-text').innerHTML =
-    text.split('\n').map(l => `<span>${l}</span>`).join('<br>');
+  renderReadingText(text);
 
   // Reset to reading phase
   document.getElementById('reading-phase').hidden  = false;
@@ -1346,7 +1408,7 @@ function init() {
   document.getElementById('btn-record').addEventListener('click', handleRecordBtn);
   document.getElementById('btn-listen-text').addEventListener('click', () => {
     if (!readingState) return;
-    speakText(readingState.text.replace(/\n/g, ' '), 0.78);
+    readAloudWithHighlight(readingState.text);
   });
   document.getElementById('btn-reading-again').addEventListener('click', startReadingSession);
   document.getElementById('btn-reading-home').addEventListener('click', () => {
