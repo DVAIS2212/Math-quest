@@ -91,15 +91,45 @@ let speechRec        = null;
 
 // Pick the most natural-sounding English TTS voice available
 function getBestVoice() {
-  const voices   = speechSynthesis.getVoices();
-  const preferred = ['Samantha', 'Google US English', 'Microsoft Aria', 'Karen', 'Moira', 'Tessa', 'Alex'];
+  const voices = speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  // Prefer high-quality / enhanced voices (iOS: Samantha Enhanced, macOS: Ava, Windows: Aria/Jenny)
+  const preferred = [
+    'Samantha (Enhanced)', 'Samantha',
+    'Ava (Enhanced)', 'Ava',
+    'Allison (Enhanced)', 'Allison',
+    'Susan (Enhanced)',
+    'Google US English',
+    'Microsoft Aria Online', 'Microsoft Aria', 'Microsoft Jenny Online', 'Microsoft Jenny',
+    'Karen (Enhanced)', 'Karen',
+    'Moira', 'Tessa', 'Alex'
+  ];
   for (const name of preferred) {
-    const v = voices.find(v => v.name.includes(name));
+    const v = voices.find(v => v.name === name);
     if (v) return v;
   }
+  // Any enhanced/premium English voice
+  const enhanced = voices.find(v => v.lang.startsWith('en') &&
+    (v.name.includes('Enhanced') || v.name.includes('Premium') || v.name.includes('Neural') || v.name.includes('Online')));
+  if (enhanced) return enhanced;
   return voices.find(v => v.lang === 'en-US') ||
-         voices.find(v => v.lang.startsWith('en')) ||
-         null;
+         voices.find(v => v.lang.startsWith('en')) || null;
+}
+
+// Centralized speak helper — uses best voice with natural-sounding settings
+function speakText(text, rate) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  setTimeout(() => {
+    const utt    = new SpeechSynthesisUtterance(text);
+    utt.lang     = 'en-US';
+    utt.rate     = rate || 0.80;
+    utt.pitch    = 1.10;
+    utt.volume   = 0.95;
+    const voice  = getBestVoice();
+    if (voice) utt.voice = voice;
+    speechSynthesis.speak(utt);
+  }, 80);
 }
 
 // ================================================================
@@ -1021,16 +1051,7 @@ function showReadingResult(results, wordObjects, correct, total, accuracy) {
 
   // Tap wrong word to hear it spoken clearly
   wordsEl.querySelectorAll('.word-wrong').forEach(el => {
-    el.addEventListener('click', () => {
-      const utt = new SpeechSynthesisUtterance(el.dataset.word);
-      utt.lang  = 'en-US';
-      utt.rate  = 0.72;
-      utt.pitch = 1.05;
-      const voice = getBestVoice();
-      if (voice) utt.voice = voice;
-      speechSynthesis.cancel();
-      speechSynthesis.speak(utt);
-    });
+    el.addEventListener('click', () => speakText(el.dataset.word, 0.68));
   });
 
   const name = displayName(currentPlayer.name);
@@ -1325,14 +1346,7 @@ function init() {
   document.getElementById('btn-record').addEventListener('click', handleRecordBtn);
   document.getElementById('btn-listen-text').addEventListener('click', () => {
     if (!readingState) return;
-    const utt = new SpeechSynthesisUtterance(readingState.text.replace(/\n/g, ' '));
-    utt.lang = 'en-US';
-    utt.rate = 0.82;
-    utt.pitch = 1.05;
-    const voice = getBestVoice();
-    if (voice) utt.voice = voice;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utt);
+    speakText(readingState.text.replace(/\n/g, ' '), 0.78);
   });
   document.getElementById('btn-reading-again').addEventListener('click', startReadingSession);
   document.getElementById('btn-reading-home').addEventListener('click', () => {
@@ -1363,8 +1377,13 @@ function init() {
     });
   });
 
-  // Home → back to mode select
+  // Home → back to mode select (text link at bottom)
   document.getElementById('btn-home-back').addEventListener('click', () => {
+    showModeSelect(currentPlayer);
+  });
+
+  // Home → X button in header → back to mode select
+  document.getElementById('btn-home-close').addEventListener('click', () => {
     showModeSelect(currentPlayer);
   });
 
